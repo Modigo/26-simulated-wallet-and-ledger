@@ -22,12 +22,16 @@ def rate_limit(request, key, limit=30, window=60):
     if len(hits[k])>=limit: raise HTTPException(429,{"code":"RATE_LIMITED","message":"Too many requests. Please wait and try again."})
     hits[k].append(now)
 def start_session(db, response, user, request):
+    old=request.cookies.get("ledgerlab_session")
+    if old:
+        prev=db.query(Session).filter_by(session_token_hash=token_hash(old)).first()
+        if prev and prev.ended_at is None: prev.ended_at=datetime.now(timezone.utc)
     token=new_token(); s=Session(user_id=user.id,session_token_hash=token_hash(token),expires_at=datetime.now(timezone.utc)+timedelta(hours=settings.session_ttl_hours))
     db.add(s); record(db,"demo_session_started" if user.is_demo else "session_started",user.id,None,{}); db.commit(); db.refresh(s)
     # analytics session link fix
     ev=db.query(AnalyticsEvent).filter_by(user_id=user.id,session_id=None).order_by(AnalyticsEvent.created_at.desc()).first()
     if ev: ev.session_id=s.id; db.commit()
-    response.set_cookie("ledgerlab_session",token,httponly=True,secure=settings.cookie_secure,samesite="lax",max_age=settings.session_ttl_hours*3600,path="/")
+    response.set_cookie("ledgerlab_session",token,httponly=True,secure=settings.cookie_secure,samesite="lax",path="/")  # no max_age on purpose: tab-scoped cookie (see docs/TESTING.md)
     return s
 def transfer_out(db,t,wallet_id=None):
     sw=db.get(Wallet,t.sender_wallet_id); rw=db.get(Wallet,t.recipient_wallet_id)

@@ -56,3 +56,26 @@ git push -u origin main
 - Render → ledgerlab-api → Settings → Health Check Path should be `/health`.
 - Never commit a real `.env`; all secrets live in Render's Environment tab only.
 - Remember: SIMULATION MODE — no real money; demo identities are classroom access, not production authentication.
+
+## "Registered, then login says not found" / demo accounts empty on Render
+Diagnose in 60 seconds:
+1. Open `https://<your-api>.onrender.com/openapi.json`. The paths **must** start with `/api/v1/`
+   (e.g. `/api/v1/demo-users`, `/api/v1/auth/register`) and `/health` must return
+   `{"status":"ok","service":"LedgerLab","simulation":true}`.
+   If you instead see `/v1/sessions` etc., **a different backend is deployed** — the frontend will
+   404 on every call (demo list empty, login "not found"). Fix: push THIS repo, make sure the api
+   Web Service has Root Directory `backend` and Start Command
+   `python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port $PORT`, then Manual Deploy.
+2. If the paths are right but users vanish after a redeploy/restart, the service is running on
+   SQLite (ephemeral disk). `DATABASE_URL` must be the PostgreSQL Internal Database URL — with
+   `render.yaml` this is automatic. The backend now refuses to boot on Render without it, so check
+   the api logs for that explicit error instead of silently losing accounts.
+
+## Session behaviour (by design)
+- Sign in once per **browser tab**: refreshing the tab, or moving between Dashboard / Send /
+  History / Analytics, keeps you signed in (server session, 12h safety cap, user row in PostgreSQL).
+- Opening LedgerLab in a **new tab** (or after closing the tab/browser) asks you to sign in again,
+  and the old session is invalidated server-side. Note browsers share cookies across tabs, so
+  signing in a new tab also signs the old tab out on its next action.
+- Log out always invalidates the session immediately; registered credentials stay in PostgreSQL,
+  so logging back in with the same username/email/phone + password is seamless.

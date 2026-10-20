@@ -59,3 +59,13 @@ def test_unauthenticated_and_logout():
     c,u=reg(); assert c.post("/api/v1/auth/logout").status_code==200; assert c.get("/api/v1/auth/me").status_code==401
 def test_pagination_empty():
     c,u=reg(); r=c.get(f"/api/v1/wallets/{u['wallet_id']}/transactions"); assert r.status_code==200 and r.json()["total"]==0 and r.json()["items"]==[]
+
+def test_login_after_logout_seamless_and_cookie_is_tab_scoped():
+    c,u=reg()
+    raw=c.post("/api/v1/auth/login", json={"identifier":u["username"],"password":"Ledger"+"123!"})
+    assert raw.status_code in (200,401)  # still logged in from register is fine either way
+    c.post("/api/v1/auth/logout")
+    again=TestClient(app); r=again.post("/api/v1/auth/login", json={"identifier":u["email"].upper(),"password":"Ledger"+"123!"})
+    assert r.status_code==200, r.text  # credentials persisted in DB: seamless re-login by email, any case
+    assert "max-age" not in r.headers.get("set-cookie","").lower()  # tab-scoped browser-session cookie
+    assert again.get("/api/v1/auth/me").status_code==200

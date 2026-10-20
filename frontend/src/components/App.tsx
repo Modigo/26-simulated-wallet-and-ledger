@@ -16,10 +16,10 @@ export default function App(){
  const [detail,setDetail]=useState<any>(null);
  const notify=(m:string)=>{setToast(m); setTimeout(()=>setToast(""),4500)};
  const refresh=useCallback(async(u:User)=>{ if(!u.wallet_id) return; const [s,t,a,e]=await Promise.all([api.summary(u.wallet_id),api.txns(u.wallet_id,page,statusF,dirF),api.analytics(),api.events()]); setSummary(s); setTxns(t); setAnalytics(a); setEvents(e); const me=await api.me(); setUser(me); },[page,statusF,dirF]);
- useEffect(()=>{(async()=>{ try{ const me=await api.me(); setUser(me);}catch{} setDemo(await api.demoUsers().catch(()=>[])); setLoading(false); })()},[]);
+ useEffect(()=>{(async()=>{ const newTab=!sessionStorage.getItem("ledgerlab_tab"); if(newTab){ sessionStorage.setItem("ledgerlab_tab","1"); await api.logout().catch(()=>{}); } else { try{ const me=await api.me(); setUser(me);}catch{} } setDemo(await api.demoUsers().catch(()=>[])); setLoading(false); })()},[]);
  useEffect(()=>{ if(user) refresh(user).catch(e=>notify(e.message)); },[user?.id,page,statusF,dirF]); // eslint-disable-line
- async function enter(fn:()=>Promise<any>){ try{ const r=await fn(); setUser(r.user||r); setView("dashboard"); notify("Welcome to LedgerLab — you are now in the dashboard."); return null; }catch(e:any){ notify(e.message); return e.message as string; } }
- async function logout(){ await api.logout().catch(()=>{}); setUser(null); setSummary(null); }
+ async function enter(fn:()=>Promise<any>){ try{ const r=await fn(); sessionStorage.setItem("ledgerlab_tab","1"); setUser(r.user||r); setView("dashboard"); notify("Welcome to LedgerLab — you are now in the dashboard."); return null; }catch(e:any){ notify(e.message); return e.message as string; } }
+ async function logout(){ await api.logout().catch(()=>{}); sessionStorage.removeItem("ledgerlab_tab"); setUser(null); setSummary(null); }
  if(loading) return <main className="p-8 max-w-6xl mx-auto"><div className="animate-pulse space-y-4"><div className="h-10 bg-panel rounded"/><div className="h-64 bg-panel rounded-2xl"/></div></main>;
  if(!user) return <Welcome demo={demo} enter={enter} notify={notify} toast={toast}/>;
  return <main className="min-h-screen">
@@ -106,7 +106,7 @@ function Welcome({demo,enter,notify,toast}:{demo:User[];enter:(f:()=>Promise<any
      {[["demo","Demo"],["register","Register"],["login","Log in"]].map(([m,l])=><button key={m} role="tab" aria-selected={mode===m} onClick={()=>{setMode(m);setError("");}} className={"px-3 py-2 rounded-xl text-sm font-semibold transition "+(mode===m?"bg-accent shadow-lg shadow-accent/30":"text-slate-400 hover:text-white")}>{l}</button>)}
     </div>
     {error&&<p role="alert" className="mt-4 flex gap-2 text-sm text-rose-200 bg-rose-500/10 border border-rose-400/40 rounded-xl px-4 py-3"><AlertTriangle size={17} className="shrink-0 mt-0.5"/>{error}</p>}
-    {mode==="demo"&&<div className="space-y-3 mt-6">{demo.length===0&&<p className="text-amber-300 text-sm bg-amber-400/10 border border-amber-400/30 rounded-xl px-4 py-3">No demo accounts loaded. Is the backend running on port 8000, and did you run <code>python -m app.seed</code> in <code>ledgerlab/backend</code>?</p>}{demo.map(u=><div key={u.id} className="group bg-panel border border-line hover:border-accent rounded-2xl p-4 flex items-center gap-4 transition">
+    {mode==="demo"&&<div className="space-y-3 mt-6">{demo.length===0&&<p className="text-amber-300 text-sm bg-amber-400/10 border border-amber-400/30 rounded-xl px-4 py-3">No demo accounts loaded — the frontend cannot reach the API service. On Render: check that ledgerlab-api is Live and that BACKEND_INTERNAL_URL on ledgerlab-web points to it (then Clear build cache & deploy). Locally: is the backend running, and did you run <code>python -m app.seed</code>?</p>}{demo.map(u=><div key={u.id} className="group bg-panel border border-line hover:border-accent rounded-2xl p-4 flex items-center gap-4 transition">
       <div className="h-11 w-11 shrink-0 rounded-full bg-gradient-to-br from-accent to-accent2 flex items-center justify-center font-bold">{initials(u.display_name)}</div>
       <div className="min-w-0 flex-1"><p className="font-bold truncate">{u.display_name} <span className="text-slate-400 font-normal text-sm">@{u.username}</span></p><p className="text-xs text-slate-400 truncate">{u.email} · {u.phone}</p><p className="font-bold mt-0.5">{naira(u.balance)}</p></div>
       <Btn disabled={busy===u.id} onClick={()=>run(u.id,()=>api.demoLogin(u.id))}>{busy===u.id?"Entering…":"Enter"}</Btn></div>)}</div>}
