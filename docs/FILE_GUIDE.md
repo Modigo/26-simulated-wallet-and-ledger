@@ -1,0 +1,12 @@
+# File guide
+- `backend/app/main.py` — FastAPI app, CORS (explicit origins), `/health`; creates tables locally (Alembic in prod).
+- `backend/app/core/config.py|database.py|security.py|deps.py` — settings/env; engine & sessions; Argon2id + token hashing; current-user dependency & wallet-ownership guard. Called by: everything.
+- `backend/app/models/models.py` — User, Wallet, Transfer, LedgerEntry, Session, AnalyticsEvent + constraints (unique idempotency, non-negative balance, no self-transfer at DB level where supported).
+- `backend/app/schemas/schemas.py` — Register/Login/Transfer validation (amount ≤2dp, password letter+number).
+- `backend/app/services/transfers.py` — `create_transfer` (locking, idempotency, atomic ledger) + `reconcile_wallet`. Debug money bugs here first.
+- `backend/app/services/users.py` — identifier normalization (+234→0), resolve, masking.
+- `backend/app/services/analytics.py` — event writer (never breaks transfers).
+- `backend/app/api/routes.py` — all `/api/v1` endpoints, in-memory rate limiting. Called by frontend `lib/api.ts`.
+- `backend/app/seed.py` — idempotent demo seed; `reset_db.py` — guarded destructive local reset; `alembic/` — migrations; `tests/test_ledgerlab.py` — 8-test suite.
+- `frontend/src/components/App.tsx` — Welcome/demo/register/login, dashboard, send flow, history, analytics, detail drawer. `frontend/src/lib/api.ts` — typed API client + naira formatting. `next.config.js` — `/api` proxy rewrite (keeps session cookie same-origin).
+- `docker-compose.yml`, `*/Dockerfile`, `.env.example` — local/prod wiring. If the UI loads but data fails: check backend terminal, `BACKEND_INTERNAL_URL`, then `/health`.

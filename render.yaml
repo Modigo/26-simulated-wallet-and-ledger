@@ -1,0 +1,42 @@
+# Render Blueprint — creates: ledgerlab-db (PostgreSQL), ledgerlab-api (FastAPI), ledgerlab-web (Next.js)
+# If you rename either web service, update BACKEND_INTERNAL_URL and CORS_ORIGINS to match the real URLs, then redeploy.
+databases:
+  - name: ledgerlab-db
+    plan: free
+    databaseName: ledgerlab
+    user: ledgerlab
+
+services:
+  - type: web
+    name: ledgerlab-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ledgerlab-db
+          property: connectionString
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: CORS_ORIGINS
+        value: https://ledgerlab-web.onrender.com
+
+  - type: web
+    name: ledgerlab-web
+    runtime: node
+    rootDir: frontend
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      # IMPORTANT: this is read when next.config.js is built — changing it requires a fresh deploy (Manual Deploy → Clear build cache & deploy).
+      - key: BACKEND_INTERNAL_URL
+        value: https://ledgerlab-api.onrender.com
+      - key: NODE_VERSION
+        value: "20"

@@ -1,0 +1,7 @@
+# Architecture
+Browser → Next.js (App Router, `frontend/src/components/App.tsx`) → same-origin `/api/*` rewrite → FastAPI (`backend/app/main.py`, routes in `app/api/routes.py`) → services (`transfers.py`, `users.py`, `analytics.py`) → SQLAlchemy 2 → PostgreSQL (SQLite locally).
+**Transfer flow:** session cookie → `get_current_user` (never trust client sender) → resolve recipient → `create_transfer`: validate (self/zero/max/currency) → deterministic `ORDER BY wallet.id … FOR UPDATE` row locks → balance check → debit+credit + Transfer + paired LedgerEntries in ONE transaction → commit; any exception rolls back everything. REJECTED (insufficient funds) is stored with no ledger entries.
+**Idempotency:** unique `(sender_wallet_id, idempotency_key)` + SHA-256 `request_hash` of normalized payload. Same key+same payload → original result (`idempotent_replay:true`); same key+different payload → 409. If the client times out after commit, retrying with the same key safely returns the original.
+**Sessions:** random token in HTTP-only cookie; DB stores only its SHA-256 hash; expiry + `ended_at` on logout; demo sessions can only be created for `is_demo` users, so demo switching cannot impersonate registered users.
+**Analytics:** `analytics_events` written server-side; failures are isolated from transfers. Metrics definitions are in API.md.
+Trade-offs: server-side rewrite proxy instead of direct CORS calls (keeps cookies same-origin); cached `wallet.balance` + reconciliation instead of ledger-only reads (speed vs. complexity for juniors).
