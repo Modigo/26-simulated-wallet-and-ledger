@@ -25,7 +25,7 @@ export default function App(){
  return <main className="min-h-screen">
   <header className="sticky top-0 bg-ink/90 backdrop-blur border-b border-line z-10"><div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap gap-3 items-center justify-between">
    <div className="flex items-center gap-3"><div className="bg-accent p-2 rounded-xl"><BookOpen size={20}/></div><div><b className="text-lg">LedgerLab</b><p className="text-xs text-slate-400">Simulated wallet & transaction ledger</p></div></div>
-   <Badge/><div className="flex items-center gap-3 text-sm"><span>{user.display_name} <span className="text-slate-400">@{user.username}{user.is_demo?" · DEMO":""}</span></span><button aria-label="Log out" onClick={logout} className="flex gap-1 items-center border border-line rounded-lg px-3 py-2"><LogOut size={16}/> Log out</button></div>
+   <div className="flex items-center gap-3 text-sm"><span>{user.display_name} <span className="text-slate-400">@{user.username}{user.is_demo?" · DEMO":""}</span></span><button aria-label="Log out" onClick={logout} className="flex gap-1 items-center border border-line rounded-lg px-3 py-2"><LogOut size={16}/> Log out</button></div>
   </div></header>
   <div className="max-w-6xl mx-auto px-4 py-6 grid md:grid-cols-[200px_1fr] gap-6">
    <nav className="flex md:flex-col gap-2" aria-label="Main">
