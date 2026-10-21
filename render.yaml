@@ -25,7 +25,7 @@ services:
       - key: COOKIE_SECURE
         value: "true"
       - key: CORS_ORIGINS
-        value: https://ledgerlab-web.onrender.com
+        value: https://ledgerlab-web-8p5o.onrender.com
 
   - type: web
     name: ledgerlab-web
@@ -37,6 +37,6 @@ services:
     envVars:
       # IMPORTANT: this is read when next.config.js is built — changing it requires a fresh deploy (Manual Deploy → Clear build cache & deploy).
       - key: BACKEND_INTERNAL_URL
-        value: https://ledgerlab-api.onrender.com
+        value: https://ledgerlab-api-7jba.onrender.com
       - key: NODE_VERSION
         value: "20"
