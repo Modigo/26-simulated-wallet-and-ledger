@@ -4,8 +4,8 @@ from app.core.database import SessionLocal, Base, engine
 from app.models.models import User, Wallet
 from app.services.analytics import record  # noqa
 DEMO=[
- ("adaeze","Adaeze Nwosu","Adaeze.Nwosu@example.com","08030000001","250000.00"),
- ("bello","Bello Adebayo","Bello.Adebayo@example.com","08030000002","180000.00"),
+ ("victor","Victor Asibe","victor.aibe@example.com","08030000001","250000.00"),
+ ("dokwe","Okwe David","okwe.david@example.com","08030000002","180000.00"),
  ("Covenant","Ebri Covenant","Covenant@example.com","08030000003","120000.00"),
  ("louis","Oyinkepreye Louis","louis@example.com","08030000004","75000.00"),
 ]
