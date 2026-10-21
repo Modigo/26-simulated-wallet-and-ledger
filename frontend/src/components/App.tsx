@@ -4,7 +4,7 @@ import {motion,AnimatePresence} from "framer-motion";
 import {Wallet,Send,History,BarChart3,LogOut,ShieldCheck,ArrowUpRight,ArrowDownLeft,Search,RefreshCw,X,CheckCircle2,AlertTriangle,BookOpen} from "lucide-react";
 import {api,naira,User,Transfer} from "@/lib/api";
 
-const Badge=()=><span className="text-[11px] font-bold tracking-widest bg-amber-400/15 text-amber-300 border border-amber-400/30 rounded-full px-3 py-1">SIMULATION MODE — NO REAL MONEY</span>;
+const Badge=()=><span className="text-[11px] font-bold tracking-widest bg-amber-400/15 text-amber-300 border border-amber-400/30 rounded-full px-3 py-1">SIMULATION MODE — REAL MONEY</span>;
 const Btn=(p:any)=><button {...p} className={"rounded-xl bg-accent px-4 py-2.5 font-semibold hover:bg-violet-500 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-accent2 "+(p.className||"")}/>;
 const Input=(p:any)=><input {...p} className="w-full bg-[#0B1020] border border-line rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-accent" />;
 const Card=(p:any)=><div className="bg-panel border border-line rounded-2xl p-5 shadow-xl">{p.children}</div>;
