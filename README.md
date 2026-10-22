@@ -2,7 +2,7 @@
 Explore how simulated digital money transfers, transaction ledgers, and balance consistency work. **Never use this to process real funds.**
 
 ## Features
-Demo accounts (adaeze ₦250,000 · bello ₦180,000 · Covenant ₦120,000 · louis ₦75,000), real registration (Argon2id password hash, ₦0 wallet), login/logout, HTTP-only session cookie (only SHA-256 token hash stored), recipient lookup by username/email/Nigerian phone, atomic double-entry transfers, idempotency, history with filters/pagination/detail, simulation analytics, reconciliation (`opening_balance + sum(signed ledger entries) = balance`; DEBIT is negative, CREDIT positive, each pair sums to zero).
+Demo accounts (dokwe ₦250,000 · victor ₦180,000 · Covenant ₦120,000 · louis ₦75,000), real registration (Argon2id password hash, ₦0 wallet), login/logout, HTTP-only session cookie (only SHA-256 token hash stored), recipient lookup by username/email/Nigerian phone, atomic double-entry transfers, idempotency, history with filters/pagination/detail, simulation analytics, reconciliation (`opening_balance + sum(signed ledger entries) = balance`; DEBIT is negative, CREDIT positive, each pair sums to zero).
 
 ## Prerequisites
 Python 3.12+, Node 20+, PostgreSQL 16 (or Docker). Local quickstart below uses SQLite so the team can run today without Docker; concurrency semantics are PostgreSQL-grade in Docker/production (see Known limitations).

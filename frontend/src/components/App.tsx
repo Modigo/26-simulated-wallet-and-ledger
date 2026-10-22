@@ -4,8 +4,7 @@ import {motion,AnimatePresence} from "framer-motion";
 import {Wallet,Send,History,BarChart3,LogOut,ShieldCheck,ArrowUpRight,ArrowDownLeft,Search,RefreshCw,X,CheckCircle2,AlertTriangle,BookOpen} from "lucide-react";
 import {api,naira,User,Transfer} from "@/lib/api";
 
-// const Badge=()=><span className="text-[11px] font-bold tracking-widest bg-amber-400/15 text-amber-300 border border-amber-400/30 rounded-full px-3 py-1"></span>;
-const Btn=(p:any)=><button {...p} className={"rounded-xl bg-accent px-4 py-2.5 font-semibold hover:bg-violet-500 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-accent2 "+(p.className||"")}/>;
+const Btn=(p:any)=><button {...p} className={"rounded-xl bg-accent px-4 py-2.5 font-semibold hover:bg-teal-500 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-accent2 "+(p.className||"")}/>;
 const Input=(p:any)=><input {...p} className="w-full bg-[#0B1020] border border-line rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-accent" />;
 const Card=(p:any)=><div className="bg-panel border border-line rounded-2xl p-5 shadow-xl">{p.children}</div>;
 
@@ -14,18 +13,28 @@ export default function App(){
  const [loading,setLoading]=useState(true); const [toast,setToast]=useState(""); const [summary,setSummary]=useState<any>(null); const [txns,setTxns]=useState<any>({items:[],total:0,page:1,pages:0});
  const [page,setPage]=useState(1); const [statusF,setStatusF]=useState(""); const [dirF,setDirF]=useState(""); const [analytics,setAnalytics]=useState<any>(null); const [events,setEvents]=useState<any[]>([]);
  const [detail,setDetail]=useState<any>(null);
+ const [theme,setTheme]=useState("dark"); const [waking,setWaking]=useState(false); const [demoError,setDemoError]=useState(false); const [tour,setTour]=useState(-1);
+ useEffect(()=>{ const th=localStorage.getItem("ledgerlab_theme")||"dark"; setTheme(th); document.documentElement.classList.toggle("light",th==="light"); },[]);
+ const toggleTheme=()=>{ const n=theme==="dark"?"light":"dark"; setTheme(n); localStorage.setItem("ledgerlab_theme",n); document.documentElement.classList.toggle("light",n==="light"); };
  const notify=(m:string)=>{setToast(m); setTimeout(()=>setToast(""),4500)};
  const refresh=useCallback(async(u:User)=>{ if(!u.wallet_id) return; const [s,t,a,e]=await Promise.all([api.summary(u.wallet_id),api.txns(u.wallet_id,page,statusF,dirF),api.analytics(),api.events()]); setSummary(s); setTxns(t); setAnalytics(a); setEvents(e); const me=await api.me(); setUser(me); },[page,statusF,dirF]);
- useEffect(()=>{(async()=>{ const newTab=!sessionStorage.getItem("ledgerlab_tab"); if(newTab){ sessionStorage.setItem("ledgerlab_tab","1"); await api.logout().catch(()=>{}); } else { try{ const me=await api.me(); setUser(me);}catch{} } setDemo(await api.demoUsers().catch(()=>[])); setLoading(false); })()},[]);
+ useEffect(()=>{(async()=>{ const newTab=!sessionStorage.getItem("ledgerlab_tab"); if(newTab){ sessionStorage.setItem("ledgerlab_tab","1"); await api.logout().catch(()=>{}); } else { try{ const me=await api.me(); setUser(me);}catch{} }
+   // Cold-start wake-up: a sleeping free-tier backend can take 30-60s to answer. Retry quietly and
+   // show a "waking up" state instead of immediately declaring the API unreachable.
+   setWaking(true); let users:any[]=[];
+   for(let i=0;i<8;i++){ try{ users=await api.demoUsers(); if(users.length) break; }catch{} if(i<7) await new Promise(r=>setTimeout(r,4000)); }
+   setDemo(users); setDemoError(!users.length); setWaking(false);
+   if(!localStorage.getItem("ledgerlab_tour_done")) setTour(0);
+   setLoading(false); })()},[]);
  useEffect(()=>{ if(user) refresh(user).catch(e=>notify(e.message)); },[user?.id,page,statusF,dirF]); // eslint-disable-line
  async function enter(fn:()=>Promise<any>){ try{ const r=await fn(); sessionStorage.setItem("ledgerlab_tab","1"); setUser(r.user||r); setView("dashboard"); notify("Welcome to LedgerLab — you are now in the dashboard."); return null; }catch(e:any){ notify(e.message); return e.message as string; } }
  async function logout(){ await api.logout().catch(()=>{}); sessionStorage.removeItem("ledgerlab_tab"); setUser(null); setSummary(null); }
  if(loading) return <main className="p-8 max-w-6xl mx-auto"><div className="animate-pulse space-y-4"><div className="h-10 bg-panel rounded"/><div className="h-64 bg-panel rounded-2xl"/></div></main>;
- if(!user) return <Welcome demo={demo} enter={enter} notify={notify} toast={toast}/>;
+ if(!user) return <><Welcome demo={demo} waking={waking} demoError={demoError} theme={theme} toggleTheme={toggleTheme} enter={enter} notify={notify} toast={toast}/>{tour>=0&&<Tour step={tour} setStep={setTour} close={()=>{localStorage.setItem("ledgerlab_tour_done","1"); setTour(-1);}}/>}</>;
  return <main className="min-h-screen">
   <header className="sticky top-0 bg-ink/90 backdrop-blur border-b border-line z-10"><div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap gap-3 items-center justify-between">
    <div className="flex items-center gap-3"><div className="bg-accent p-2 rounded-xl"><BookOpen size={20}/></div><div><b className="text-lg">LedgerLab</b><p className="text-xs text-slate-400">Simulated wallet & transaction ledger</p></div></div>
-   <div className="flex items-center gap-3 text-sm"><span>{user.display_name} <span className="text-slate-400">@{user.username}{user.is_demo?" · DEMO":""}</span></span><button aria-label="Log out" onClick={logout} className="flex gap-1 items-center border border-line rounded-lg px-3 py-2"><LogOut size={16}/> Log out</button></div>
+   <button onClick={toggleTheme} aria-label="Toggle light or dark mode" className="border border-line rounded-lg px-3 py-2 text-sm">{theme==="dark"?"☀️ Light":"🌙 Dark"}</button><div className="flex items-center gap-3 text-sm"><span>{user.display_name} <span className="text-slate-400">@{user.username}{user.is_demo?" · DEMO":""}</span></span><button aria-label="Log out" onClick={logout} className="flex gap-1 items-center border border-line rounded-lg px-3 py-2"><LogOut size={16}/> Log out</button></div>
   </div></header>
   <div className="max-w-6xl mx-auto px-4 py-6 grid md:grid-cols-[200px_1fr] gap-6">
    <nav className="flex md:flex-col gap-2" aria-label="Main">
@@ -56,12 +65,16 @@ function TxnList({items,onOpen}:{items:Transfer[];onOpen:(id:string)=>void}){
 }
 function SendMoney({user,done,notify}:{user:User;done:(m:string)=>void;notify:(m:string)=>void}){
  const [identifier,setIdentifier]=useState(""); const [recipient,setRecipient]=useState<User|null>(null); const [amount,setAmount]=useState(""); const [desc,setDesc]=useState(""); const [step,setStep]=useState(1); const [busy,setBusy]=useState(false); const [err,setErr]=useState(""); const [key,setKey]=useState("");
+ const [lookup,setLookup]=useState("");
  async function resolve(){ setErr(""); try{ setRecipient(await api.resolve(identifier)); setKey(crypto.randomUUID()); }catch(e:any){ setRecipient(null); setErr(e.message);} }
+ useEffect(()=>{ const id=identifier.trim(); if(id.length<3){ setRecipient(null); setLookup(""); return; } setLookup("Searching…");
+   const h=setTimeout(async()=>{ try{ const u=await api.resolve(id); setRecipient(u); setLookup(""); setKey(k=>k||crypto.randomUUID()); setErr(""); }catch{ setRecipient(null); setLookup("No account found for that identifier yet — keep typing or check the spelling."); } },500);
+   return ()=>clearTimeout(h); },[identifier]);
  async function submit(){ setBusy(true); setErr(""); try{ const r=await api.transfer({recipient_identifier:identifier,amount,description:desc||null,idempotency_key:key}); done(r.idempotent_replay?"Duplicate safely ignored — original transfer returned.":"Transfer completed successfully."); }catch(e:any){ setErr(e.message+" Your form is preserved — fix it or retry with the same key."); } finally{ setBusy(false);} }
  const amt=Number(amount); const valid=recipient&&amt>0&&amt<=Number(user.balance||0);
  return <Card><h2 className="text-xl font-bold">Send simulated money</h2><p className="text-sm text-slate-400 mt-1">NGN only. This never moves real money.</p>
-  {step===1&&<div className="space-y-4 mt-5"><label className="block text-sm">Recipient (username, email or Nigerian phone)<div className="flex gap-2 mt-1"><Input value={identifier} onChange={(e:any)=>setIdentifier(e.target.value)} placeholder="e.g. bello, bello@example.com, 0803…" aria-label="Recipient identifier"/><button onClick={resolve} className="border border-line rounded-xl px-4 flex gap-2 items-center"><Search size={16}/> Resolve</button></div></label>
-  {recipient&&<div className="border border-emerald-400/40 bg-emerald-400/10 rounded-xl p-3 text-sm"><CheckCircle2 className="inline mr-2 text-emerald-300"/>{recipient.display_name} (@{recipient.username}) · {recipient.email} · {recipient.phone}</div>}
+  {step===1&&<div className="space-y-4 mt-5"><label className="block text-sm">Recipient (username, email or Nigerian phone)<div className="flex gap-2 mt-1"><Input value={identifier} onChange={(e:any)=>setIdentifier(e.target.value)} placeholder="e.g. victor, Victor.Aibe@example.com, 0803…" aria-label="Recipient identifier"/><button onClick={resolve} className="border border-line rounded-xl px-4 flex gap-2 items-center"><Search size={16}/> Resolve</button></div></label>
+  {lookup&&!recipient&&<p className="text-sm text-teal-200" role="status">{lookup}</p>}{recipient&&<div className="border border-emerald-400/40 bg-emerald-400/10 rounded-xl p-3 text-sm"><CheckCircle2 className="inline mr-2 text-emerald-300"/>{recipient.display_name} (@{recipient.username}) · {recipient.email} · {recipient.phone}</div>}
   <label className="block text-sm">Amount (NGN)<div className="mt-1"><Input type="number" min="0" step="0.01" value={amount} onChange={(e:any)=>setAmount(e.target.value)} aria-label="Amount in naira"/></div></label>
   {amount&&!valid&&<p className="text-amber-300 text-sm flex gap-2"><AlertTriangle size={16}/> Enter an amount above ₦0 and no more than your balance ({naira(user.balance)}).</p>}
   <label className="block text-sm">Description (optional)<div className="mt-1"><Input value={desc} onChange={(e:any)=>setDesc(e.target.value)} aria-label="Description"/></div></label>
@@ -69,7 +82,7 @@ function SendMoney({user,done,notify}:{user:User;done:(m:string)=>void;notify:(m
   {step===2&&recipient&&<div className="space-y-3 mt-5 text-sm"><p>Send <b className="text-xl">{naira(amount)}</b> to <b>{recipient.display_name}</b> (@{recipient.username})?</p><p className="text-slate-400">Description: {desc||"—"} · Idempotency key: {key.slice(0,8)}… (reused automatically on retry)</p>{err&&<p role="alert" className="text-rose-300">{err}</p>}<div className="flex gap-2"><button onClick={()=>setStep(1)} className="border border-line rounded-xl px-4 py-2">Back</button><Btn disabled={busy} onClick={submit}>{busy?"Processing…":"Confirm simulated transfer"}</Btn></div></div>}
  </Card>;
 }
-function Welcome({demo,enter,notify,toast}:{demo:User[];enter:(f:()=>Promise<any>)=>Promise<string|null>;notify:(m:string)=>void;toast:string}){
+function Welcome({demo,waking,demoError,theme,toggleTheme,enter,notify,toast}:{demo:User[];waking:boolean;demoError:boolean;theme:string;toggleTheme:()=>void;enter:(f:()=>Promise<any>)=>Promise<string|null>;notify:(m:string)=>void;toast:string}){
  const [mode,setMode]=useState("demo"); const [form,setForm]=useState({display_name:"",username:"",email:"",phone:"",password:"",confirm:""}); const [login,setLogin]=useState({identifier:"",password:""});
  const [busy,setBusy]=useState(""); const [error,setError]=useState("");
  const set=(k:string,v:string)=>setForm({...form,[k]:v});
@@ -81,19 +94,19 @@ function Welcome({demo,enter,notify,toast}:{demo:User[];enter:(f:()=>Promise<any
    <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-accent/25 blur-3xl" aria-hidden="true"/><div className="absolute bottom-0 left-1/3 h-56 w-56 rounded-full bg-accent2/15 blur-3xl" aria-hidden="true"/>
    <div className="relative flex items-center justify-between"><div className="flex gap-3 items-center"><div className="bg-accent p-2.5 rounded-2xl shadow-lg shadow-accent/40"><BookOpen/></div><div><h1 className="text-2xl font-bold leading-none">LedgerLab</h1><p className="text-xs text-slate-400 mt-1">Simulated wallet &amp; transaction ledger</p></div></div></div>
    <h2 className="relative text-4xl lg:text-5xl font-extrabold leading-tight mt-14">See how digital money <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-accent2">actually moves.</span></h2>
-   <p className="relative text-slate-300 mt-5 max-w-md">Send simulated naira between accounts and watch the double-entry ledger balance itself — every debit matched by a credit, every kobo accounted for.</p>
+   <p className="relative text-slate-300 mt-5 max-w-md">Send simulated naira between accounts and watch the double-entry ledger balance itself, every debit matched by a credit, every kobo accounted for.</p>
    <motion.div initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:.15}} className="relative mt-10 max-w-md rounded-3xl border border-white/10 bg-white/5 backdrop-blur p-6 shadow-2xl">
-    <p className="text-xs tracking-widest text-slate-400 flex items-center gap-2"><Wallet size={14}/> DEMO WALLET · ADAEZE NWOSU</p>
+    <p className="text-xs tracking-widest text-slate-400 flex items-center gap-2"><Wallet size={14}/> DEMO WALLET · Okwe David</p>
     <p className="text-4xl font-extrabold mt-3">₦250,000.00</p>
     <div className="mt-5 space-y-2 text-sm">
-     <p className="flex justify-between border-b border-white/5 pb-2"><span className="text-rose-300">− ₦5,000.00</span><span className="text-slate-400">DEBIT · to bello</span></p>
-     <p className="flex justify-between border-b border-white/5 pb-2"><span className="text-emerald-300">+ ₦5,000.00</span><span className="text-slate-400">CREDIT · from adaeze</span></p>
+     <p className="flex justify-between border-b border-white/5 pb-2"><span className="text-rose-300">− ₦5,000.00</span><span className="text-slate-400">DEBIT · to victor</span></p>
+     <p className="flex justify-between border-b border-white/5 pb-2"><span className="text-emerald-300">+ ₦5,000.00</span><span className="text-slate-400">CREDIT · from dokwe</span></p>
      <p className="flex justify-between font-semibold"><span>Ledger check</span><span className="text-emerald-300 flex items-center gap-1"><CheckCircle2 size={15}/> Sums to ₦0.00</span></p>
     </div>
    </motion.div>
    <ul className="relative mt-8 space-y-2 text-sm text-slate-300">
-    <li className="flex gap-2"><ShieldCheck size={17} className="text-accent2 shrink-0"/> Atomic transfers — a transfer completes fully or not at all</li>
-    <li className="flex gap-2"><RefreshCw size={17} className="text-accent2 shrink-0"/> Idempotency keys — safe retries never double-charge</li>
+    <li className="flex gap-2"><ShieldCheck size={17} className="text-accent2 shrink-0"/> Atomic transfers: a transfer completes fully or not at all</li>
+    <li className="flex gap-2"><RefreshCw size={17} className="text-accent2 shrink-0"/> Idempotency keys: safe retries never double-charge</li>
     <li className="flex gap-2"><Search size={17} className="text-accent2 shrink-0"/> Find anyone by username, email or Nigerian phone number</li>
    </ul>
   </section>
@@ -101,12 +114,12 @@ function Welcome({demo,enter,notify,toast}:{demo:User[];enter:(f:()=>Promise<any
   <section className="px-5 py-10 lg:px-12 flex items-start lg:items-center justify-center">
    <div className="w-full max-w-md">
     <h3 className="text-2xl font-bold">{mode==="demo"?"Enter the demo":mode==="register"?"Create your account":"Welcome back"}</h3>
-    <p className="text-sm text-slate-400 mt-1">{mode==="demo"?"One click, no password — pick an identity and present both sides of a transfer.":mode==="register"?"Your wallet starts at ₦0.00. Ask a demo account to send you funds.":"Log in with your username, email or phone."}</p>
-    <div className="grid grid-cols-3 gap-1 bg-panel border border-line rounded-2xl p-1 mt-6" role="tablist" aria-label="Access options">
+    <p className="text-sm text-slate-400 mt-1">{mode==="demo"?"One click, no password, pick an identity and present both sides of a transfer.":mode==="register"?"Your wallet starts at ₦0.00. Ask a demo account to send you funds.":"Log in with your username, email or phone."}</p>
+    <button onClick={toggleTheme} aria-label="Toggle light or dark mode" className="mt-4 border border-line rounded-xl px-3 py-2 text-sm">{theme==="dark"?"☀️ Switch to light mode":"🌙 Switch to dark mode"}</button><div className="grid grid-cols-3 gap-1 bg-panel border border-line rounded-2xl p-1 mt-6" role="tablist" aria-label="Access options">
      {[["demo","Demo"],["register","Register"],["login","Log in"]].map(([m,l])=><button key={m} role="tab" aria-selected={mode===m} onClick={()=>{setMode(m);setError("");}} className={"px-3 py-2 rounded-xl text-sm font-semibold transition "+(mode===m?"bg-accent shadow-lg shadow-accent/30":"text-slate-400 hover:text-white")}>{l}</button>)}
     </div>
     {error&&<p role="alert" className="mt-4 flex gap-2 text-sm text-rose-200 bg-rose-500/10 border border-rose-400/40 rounded-xl px-4 py-3"><AlertTriangle size={17} className="shrink-0 mt-0.5"/>{error}</p>}
-    {mode==="demo"&&<div className="space-y-3 mt-6">{demo.length===0&&<p className="text-amber-300 text-sm bg-amber-400/10 border border-amber-400/30 rounded-xl px-4 py-3">No demo accounts loaded — the frontend cannot reach the API service. On Render: check that ledgerlab-api is Live and that BACKEND_INTERNAL_URL on ledgerlab-web points to it (then Clear build cache & deploy). Locally: is the backend running, and did you run <code>python -m app.seed</code>?</p>}{demo.map(u=><div key={u.id} className="group bg-panel border border-line hover:border-accent rounded-2xl p-4 flex items-center gap-4 transition">
+    {mode==="demo"&&<div className="space-y-3 mt-6">{waking&&demo.length===0&&<div className="space-y-3" role="status"><div className="animate-pulse bg-panel border border-line rounded-2xl h-20"/><p className="text-sm text-teal-200">⏳ Waking up the demo server — free hosting sleeps when idle, this can take up to a minute. No need to redeploy; please wait…</p></div>}{!waking&&demoError&&demo.length===0&&<p className="text-amber-300 text-sm bg-amber-400/10 border border-amber-400/30 rounded-xl px-4 py-3">No demo accounts loaded — the frontend cannot reach the API service. On Render: check that ledgerlab-api is Live and that BACKEND_INTERNAL_URL on ledgerlab-web points to it (then Clear build cache & deploy). Locally: is the backend running, and did you run <code>python -m app.seed</code>?</p>}{demo.map(u=><div key={u.id} className="group bg-panel border border-line hover:border-accent rounded-2xl p-4 flex items-center gap-4 transition">
       <div className="h-11 w-11 shrink-0 rounded-full bg-gradient-to-br from-accent to-accent2 flex items-center justify-center font-bold">{initials(u.display_name)}</div>
       <div className="min-w-0 flex-1"><p className="font-bold truncate">{u.display_name} <span className="text-slate-400 font-normal text-sm">@{u.username}</span></p><p className="text-xs text-slate-400 truncate">{u.email} · {u.phone}</p><p className="font-bold mt-0.5">{naira(u.balance)}</p></div>
       <Btn disabled={busy===u.id} onClick={()=>run(u.id,()=>api.demoLogin(u.id))}>{busy===u.id?"Entering…":"Enter"}</Btn></div>)}</div>}
@@ -124,4 +137,16 @@ function Welcome({demo,enter,notify,toast}:{demo:User[];enter:(f:()=>Promise<any
   </section>
   {toast&&!error&&<div role="status" className="fixed bottom-5 right-5 bg-panel border border-accent rounded-xl px-4 py-3 max-w-sm shadow-2xl z-30">{toast}</div>}
  </main>);
+}
+
+const TOUR=[["Welcome to LedgerLab 👋","This is a simulation — no real money moves. You'll send pretend naira between accounts and watch a real double-entry ledger balance itself."],["1 · Pick a demo account","Use the Demo tab and tap Enter on any account (dokwe starts with ₦250,000). No password needed. To present both sides, log out and enter as the other person."],["2 · Send a transfer","Go to Send money and type a username, email or phone — the recipient resolves automatically as you type. Review, confirm, and the balance updates instantly."],["3 · Inspect the ledger","Open History, tap any transaction, and show the paired DEBIT/CREDIT entries summing to ₦0.00. Try ₦999,999 from louis to demo a safe rejection."]];
+function Tour({step,setStep,close}:{step:number;setStep:(n:number)=>void;close:()=>void}){
+ const [t,body]=TOUR[step];
+ return <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" role="dialog" aria-label="Welcome tour"><div className="bg-panel border border-line rounded-3xl p-7 max-w-md w-full shadow-2xl">
+  <p className="text-xs tracking-widest text-teal-300">FIRST-TIME WALKTHROUGH · {step+1} OF {TOUR.length}</p>
+  <h3 className="text-2xl font-bold mt-3">{t}</h3><p className="text-slate-300 mt-3 leading-relaxed">{body}</p>
+  <div className="flex gap-2 mt-5">{TOUR.map((_,i)=><span key={i} className={"h-2 flex-1 rounded-full "+(i<=step?"bg-accent":"bg-line")}/>)}</div>
+  <div className="flex justify-between mt-6"><button onClick={close} className="text-slate-400 px-3 py-2">Skip tour</button>
+  <div className="flex gap-2">{step>0&&<button onClick={()=>setStep(step-1)} className="border border-line rounded-xl px-4 py-2">Back</button>}
+  {step<TOUR.length-1?<Btn onClick={()=>setStep(step+1)}>Next</Btn>:<Btn onClick={close}>Start exploring 🚀</Btn>}</div></div></div></div>;
 }
