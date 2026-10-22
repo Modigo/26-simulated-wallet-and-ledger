@@ -1,0 +1,4 @@
+@tailwind base; @tailwind components; @tailwind utilities;
+body{background:#0B1020;color:#EEF2FF;font-family:Inter,ui-sans-serif,system-ui}
+input,select{color-scheme:dark}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
