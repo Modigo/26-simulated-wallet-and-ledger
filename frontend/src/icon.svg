@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0D9488"/>
+      <stop offset="1" stop-color="#0B5FFF"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="#071620"/>
+  <rect x="5" y="5" width="54" height="54" rx="13" fill="none" stroke="url(#g)" stroke-width="3"/>
+  <!-- ledger book -->
+  <path d="M22 16h20a6 6 0 0 1 6 6v26H28a6 6 0 0 1-6-6V16z" fill="url(#g)"/>
+  <path d="M22 16v26a6 6 0 0 0 6 6" fill="none" stroke="#071620" stroke-width="3"/>
+  <!-- ledger lines -->
+  <path d="M32 26h10M32 33h10" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+  <!-- balanced entries: debit / credit dots -->
+  <circle cx="28" cy="26" r="2" fill="#F0B24A"/>
+  <circle cx="28" cy="33" r="2" fill="#FFFFFF"/>
+  <path d="M32 41h7" stroke="#F0B24A" stroke-width="3" stroke-linecap="round"/>
+</svg>
